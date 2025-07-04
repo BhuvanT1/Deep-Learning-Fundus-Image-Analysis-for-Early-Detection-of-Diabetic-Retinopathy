@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Eye, Mail, Lock, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -15,7 +16,16 @@ const Register = () => {
     password: "",
     confirmPassword: ""
   });
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { signUp, user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -24,8 +34,9 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Error",
@@ -34,10 +45,26 @@ const Register = () => {
       });
       return;
     }
-    toast({
-      title: "Registration Successful",
-      description: "Welcome to RetinaAI! Please login to continue.",
-    });
+
+    setLoading(true);
+
+    const { error } = await signUp(formData.email, formData.password, formData.fullName);
+
+    if (error) {
+      toast({
+        title: "Registration Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Registration Successful",
+        description: "Please check your email to verify your account.",
+      });
+      navigate('/login');
+    }
+    
+    setLoading(false);
   };
 
   return (
@@ -136,8 +163,8 @@ const Register = () => {
                   />
                 </div>
 
-                <Button type="submit" className="w-full mt-6">
-                  Create Account
+                <Button type="submit" className="w-full mt-6" disabled={loading}>
+                  {loading ? "Creating Account..." : "Create Account"}
                 </Button>
               </form>
 
